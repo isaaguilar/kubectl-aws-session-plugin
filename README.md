@@ -10,7 +10,7 @@ Requires AWS credentials. Can be any valid credentials in the [AWS Default Crede
 
 ### Install 
 
-Download the [latest](releases/latest) or build the binary by running `make`. Copy the binary in your `$PATH`. (ie `/usr/local/bin/kubectl-aws-session` should work for linux/osx user.)
+Download the [latest](https://github.com/isaaguilar/kubectl-aws-session-plugin/releases/latest) or build the binary by running `make`. Copy the binary in your `$PATH`. (ie `/usr/local/bin/kubectl-aws-session` should work for linux/osx user.)
 
 ### Usage 
 
