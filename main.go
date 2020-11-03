@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +20,20 @@ import (
 )
 
 var version string
+
+type kubecfg struct {
+	CurrentContext string     `json:"current-context"`
+	Contexts       []contexts `json:"contexts"`
+}
+
+type contexts struct {
+	Name    string  `json:"name"`
+	Context context `json:"context"`
+}
+
+type context struct {
+	Namespace string `json:"namespace"`
+}
 
 var (
 	// vars used for flags
@@ -74,7 +90,7 @@ func init() {
 			kubeconfig = os.Getenv("KUBECONFIG")
 		}
 	}
-	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "namespace to add Kubernetes creds secret")
+	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "namespace to add Kubernetes creds secret")
 	rootCmd.AddCommand(versionCmd)
 }
 
@@ -87,6 +103,25 @@ func run(kubeconfig, namespace, name string) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		panic(err)
+	}
+
+	// Get the namespace from the user's contexts when not passed in via flag
+	if namespace == "" {
+		b, err := ioutil.ReadFile(kubeconfig)
+		if err != nil {
+			panic(err)
+		}
+		kubecfgCtx := kubecfg{}
+		yaml.Unmarshal(b, &kubecfgCtx)
+		for _, item := range kubecfgCtx.Contexts {
+			if item.Name == kubecfgCtx.CurrentContext {
+				namespace = item.Context.Namespace
+				break
+			}
+		}
+		if namespace == "" {
+			namespace = "default"
+		}
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
